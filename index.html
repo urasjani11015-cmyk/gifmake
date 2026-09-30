@@ -1,0 +1,537 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Image to GIF</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#f1f3f5;
+    font-family:Arial,sans-serif;
+}
+
+.container{
+    width:92%;
+    max-width:500px;
+    background:#fff;
+    padding:25px;
+    border-radius:16px;
+    box-shadow:0 8px 30px rgba(0,0,0,.12);
+}
+
+h1{
+    text-align:center;
+    margin:0 0 20px;
+    font-size:26px;
+}
+
+.tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:15px;
+}
+
+.tabs button{
+    flex:1;
+    padding:11px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    background:#f5f5f5;
+    color:#222;
+    cursor:pointer;
+}
+
+.tabs button.active{
+    background:#111;
+    color:#fff;
+}
+
+.section{
+    display:none;
+}
+
+.section.active{
+    display:block;
+}
+
+input[type="file"],
+input[type="text"]{
+    width:100%;
+    padding:12px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    margin-bottom:12px;
+}
+
+#create{
+    width:100%;
+    padding:14px;
+    border:0;
+    border-radius:9px;
+    background:#111;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+#create:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+.preview{
+    width:100%;
+    max-height:350px;
+    object-fit:contain;
+    margin-top:20px;
+    border-radius:10px;
+    display:none;
+    background:#eee;
+}
+
+.status{
+    text-align:center;
+    margin-top:15px;
+    font-size:14px;
+}
+
+.download{
+    display:none;
+    width:100%;
+    margin-top:12px;
+    padding:13px;
+    text-align:center;
+    text-decoration:none;
+    border-radius:9px;
+    background:#198754;
+    color:#fff;
+}
+
+.note{
+    text-align:center;
+    color:#777;
+    font-size:12px;
+    margin-top:15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Image → GIF</h1>
+
+<div class="tabs">
+
+<button id="uploadTab" class="active">
+Upload Image
+</button>
+
+<button id="urlTab">
+Image URL
+</button>
+
+</div>
+
+
+<!-- UPLOAD -->
+
+<div id="uploadSection" class="section active">
+
+<input
+    type="file"
+    id="imageFile"
+    accept="image/*"
+>
+
+</div>
+
+
+<!-- URL -->
+
+<div id="urlSection" class="section">
+
+<input
+    type="text"
+    id="imageUrl"
+    placeholder="Paste direct image URL..."
+>
+
+</div>
+
+
+<button id="create" onclick="createGIF()">
+Create 10 Second GIF
+</button>
+
+
+<img id="preview" class="preview">
+
+
+<div id="status" class="status"></div>
+
+
+<a
+    id="download"
+    class="download"
+    download="image-10-second.gif"
+>
+Download GIF
+</a>
+
+
+<div class="note">
+The image stays static for 10 seconds.
+</div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+
+
+<script>
+
+let selectedMode = "upload";
+
+const uploadTab =
+document.getElementById("uploadTab");
+
+const urlTab =
+document.getElementById("urlTab");
+
+const uploadSection =
+document.getElementById("uploadSection");
+
+const urlSection =
+document.getElementById("urlSection");
+
+
+uploadTab.onclick = function(){
+
+    selectedMode = "upload";
+
+    uploadTab.classList.add("active");
+    urlTab.classList.remove("active");
+
+    uploadSection.classList.add("active");
+    urlSection.classList.remove("active");
+
+};
+
+
+urlTab.onclick = function(){
+
+    selectedMode = "url";
+
+    urlTab.classList.add("active");
+    uploadTab.classList.remove("active");
+
+    urlSection.classList.add("active");
+    uploadSection.classList.remove("active");
+
+};
+
+
+function createGIF(){
+
+    const status =
+    document.getElementById("status");
+
+    const preview =
+    document.getElementById("preview");
+
+    const download =
+    document.getElementById("download");
+
+    const createButton =
+    document.getElementById("create");
+
+    let imageSource = null;
+
+
+    /*
+    UPLOAD IMAGE
+    */
+
+    if(selectedMode === "upload"){
+
+        const file =
+        document.getElementById("imageFile").files[0];
+
+        if(!file){
+
+            alert("Pehle image select karo.");
+
+            return;
+        }
+
+        imageSource =
+        URL.createObjectURL(file);
+
+    }
+
+
+    /*
+    IMAGE URL
+    */
+
+    if(selectedMode === "url"){
+
+        const url =
+        document.getElementById("imageUrl").value.trim();
+
+        if(!url){
+
+            alert("Image URL paste karo.");
+
+            return;
+        }
+
+        imageSource = url;
+
+    }
+
+
+    createButton.disabled = true;
+
+    download.style.display = "none";
+
+    status.innerText =
+    "Image load ho rahi hai...";
+
+
+    const img =
+    new Image();
+
+
+    if(selectedMode === "url"){
+
+        img.crossOrigin = "anonymous";
+
+    }
+
+
+    img.onload = function(){
+
+        /*
+        Canvas
+        */
+
+        const canvas =
+        document.createElement("canvas");
+
+        const maxSize = 700;
+
+        let width = img.naturalWidth;
+        let height = img.naturalHeight;
+
+
+        if(width > maxSize){
+
+            height =
+            height * maxSize / width;
+
+            width =
+            maxSize;
+
+        }
+
+
+        if(height > maxSize){
+
+            width =
+            width * maxSize / height;
+
+            height =
+            maxSize;
+
+        }
+
+
+        width = Math.round(width);
+        height = Math.round(height);
+
+
+        canvas.width = width;
+        canvas.height = height;
+
+
+        const ctx =
+        canvas.getContext("2d");
+
+
+        ctx.fillStyle = "#ffffff";
+
+        ctx.fillRect(
+            0,
+            0,
+            width,
+            height
+        );
+
+
+        ctx.drawImage(
+            img,
+            0,
+            0,
+            width,
+            height
+        );
+
+
+        /*
+        Preview
+        */
+
+        preview.src =
+        canvas.toDataURL("image/png");
+
+        preview.style.display =
+        "block";
+
+
+        status.innerText =
+        "GIF prepare ho rahi hai...";
+
+
+        /*
+        GIF SETTINGS
+        */
+
+        const gif =
+        new GIF({
+
+            workers:2,
+
+            quality:10,
+
+            width:width,
+
+            height:height,
+
+            workerScript:
+            "https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js"
+
+        });
+
+
+        /*
+        10 SECOND GIF
+        */
+
+        const fps = 10;
+
+        const totalFrames = 100;
+
+        const frameDelay = 100;
+
+
+        for(
+            let i = 0;
+            i < totalFrames;
+            i++
+        ){
+
+            gif.addFrame(
+                canvas,
+                {
+                    copy:true,
+                    delay:frameDelay
+                }
+            );
+
+        }
+
+
+        /*
+        Progress
+        */
+
+        gif.on(
+            "progress",
+            function(progress){
+
+                status.innerText =
+                "Creating GIF: " +
+                Math.round(progress * 100) +
+                "%";
+
+            }
+        );
+
+
+        /*
+        Finished
+        */
+
+        gif.on(
+            "finished",
+            function(blob){
+
+                const gifURL =
+                URL.createObjectURL(blob);
+
+
+                preview.src =
+                gifURL;
+
+
+                download.href =
+                gifURL;
+
+
+                download.style.display =
+                "block";
+
+
+                status.innerText =
+                "Done! 10-second GIF ready.";
+
+
+                createButton.disabled =
+                false;
+
+            }
+        );
+
+
+        gif.render();
+
+    };
+
+
+    img.onerror = function(){
+
+        status.innerText =
+        "Image load nahi hui. URL direct image URL hona chahiye.";
+
+        createButton.disabled =
+        false;
+
+    };
+
+
+    img.src =
+    imageSource;
+
+}
+
+</script>
+
+</body>
+</html>
+```
